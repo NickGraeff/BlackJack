@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">BlackJack</string>
+    <string name="hit_button">Hit</string>
+    <string name="stand_button">Stand</string>
+    <string name="double_down_button">Double Down</string>
+    <string name="split_button">Split</string>
+</resources>
