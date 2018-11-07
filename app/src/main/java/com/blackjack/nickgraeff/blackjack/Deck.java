@@ -76,9 +76,9 @@ public class Deck {
         cardsDealt = new boolean[52]; // Java initializes this to false by default
     }
 
-    public int dealACard() {
+    public int dealAValue() {
         do {
-            cardPicked = rand.nextInt(53);
+            cardPicked = rand.nextInt(52);
         } while (cardsDealt[cardPicked] == true);
 
         return (cardPicked % 13 + 1 > 10) ? 10 : cardPicked % 13 + 1;
@@ -88,9 +88,13 @@ public class Deck {
         Arrays.fill(cardsDealt, false);
     }
 
+    public int getLastCardNumber() {
+        return (cardPicked % 13 + 1);
+    }
+
     public int getLastCardsImageResource() {
         int returnVal = -1;
-        switch (cardPicked-1) {
+        switch (cardPicked) {
             case S1:
                 returnVal = R.drawable.ace_of_spades;
                 break;

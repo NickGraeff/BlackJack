@@ -1,30 +1,42 @@
 package com.blackjack.nickgraeff.blackjack;
 
-import android.support.v4.content.ContextCompat;
+import android.os.Handler;
+import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.GridLayout;
+import android.view.View;
 import android.widget.ImageView;
 import android.support.constraint.ConstraintLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import java.lang.invoke.ConstantCallSite;
+import org.w3c.dom.Text;
+
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Vector;
 
 public class MainActivity extends AppCompatActivity {
 
+    // UI Elements
+    private ConstraintLayout layoutForThisActivity;
+
+    // Logical elements
     private Deck deck;
 
     private Vector<Integer> cardsOnTableForPlayer;
     private Vector<Integer> cardsOnTableForDealer;
 
-    private Vector<ImageView> imagesOfCardsOnTableForPlayer;
-    private Vector<ImageView> imagesOfCardsOnTableForDealer;
+    private Vector<Integer> imageIdsOfCardsOnTableForPlayer;
+    private Vector<Integer> imageIdsOfCardsOnTableForDealer;
 
     private int playerScore;
     private int dealerScore;
 
-    private int playerPoints;
+    private int pointsWonThisRound;
+    private Vector<Integer> playerPoints;
+    private int handBeingPlayedByPlayer;
     private int dealerPoints;
 
     private boolean playersTurn;
@@ -33,116 +45,178 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        deck = new Deck();
-        imagesOfCardsOnTableForPlayer = new Vector<ImageView>();
-        imagesOfCardsOnTableForDealer = new Vector<ImageView>();
-        cardsOnTableForPlayer = new Vector<Integer>();
-        cardsOnTableForDealer = new Vector<Integer>();
-        playerScore = 0;
-        dealerScore = 0;
-        playerPoints = 0;
-        dealerPoints = 0;
-        playersTurn = true;
-
+        // Display screen
         setContentView(R.layout.activity_main);
 
-        // Get the layout for the grid and set the rows and cols
-        GridLayout playersGridLayout = (GridLayout) findViewById(R.id.gridLayoutForPlayer);
-        GridLayout dealersGridLayout = (GridLayout) findViewById(R.id.gridLayoutForDealer);
-        dealersGridLayout.setColumnCount(11);
-        playersGridLayout.setColumnCount(11);
-        dealersGridLayout.setRowCount(2);
-        playersGridLayout.setRowCount(2);
+        // Initialize UI elements
+        ((TextView)findViewById(R.id.textView2)).setText(Integer.toString(0));
+        ((TextView)findViewById(R.id.textView4)).setText(Integer.toString(0));
+        imageIdsOfCardsOnTableForPlayer = new Vector<Integer>();
+        imageIdsOfCardsOnTableForDealer = new Vector<Integer>();
+
+        // Initialize logical elements
+        deck = new Deck();
+        cardsOnTableForPlayer = new Vector<Integer>();
+        cardsOnTableForDealer = new Vector<Integer>();
+        playerPoints = new Vector<Integer>();
+        dealerPoints = 0;
 
         resetGame();
     }
 
-    public void hitButtonSelected() {
+    public void hitButtonSelected(View view) {
 
-        // Get the layout for the grid and set the rows and cols
-        GridLayout dealersGridLayout = (GridLayout) findViewById(R.id.gridLayoutForDealer);
-        GridLayout playersGridLayout = (GridLayout) findViewById(R.id.gridLayoutForDealer);
-
-        int cardDealt = deck.dealACard();
+        int cardDealt = deck.dealAValue();
         ImageView cardImage = new ImageView(getApplicationContext());
+        cardImage.setId(ViewCompat.generateViewId());
+        cardImage.setTag(deck.getLastCardsImageResource());
         cardImage.setImageResource(deck.getLastCardsImageResource());
 
+        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT, ConstraintLayout.LayoutParams.WRAP_CONTENT);
+        llp.setMargins(0, 0, 0, 0); // llp.setMargins(left, top, right, bottom);
+        cardImage.setLayoutParams(llp);
+
         if (playersTurn) {
-            playerPoints += cardDealt;
+            playerPoints.set(handBeingPlayedByPlayer, playerPoints.elementAt(handBeingPlayedByPlayer) + cardDealt);
+            cardsOnTableForPlayer.add(cardDealt);
             TextView playersPointsView = (TextView) findViewById(R.id.textView5);
-            playersPointsView.setText(Integer.toString(playerPoints));
-            imagesOfCardsOnTableForPlayer.add(cardImage);
-            playersGridLayout.addView(cardImage);
+            playersPointsView.setText(Integer.toString(playerPoints.elementAt(handBeingPlayedByPlayer)));
+            imageIdsOfCardsOnTableForPlayer.add((Integer)cardImage.getTag());
+            ((LinearLayout)findViewById(R.id.playerLinearLayout)).addView(cardImage);
         } else {
             dealerPoints += cardDealt;
+            cardsOnTableForDealer.add(cardDealt);
             TextView dealersPointsView = (TextView) findViewById(R.id.textView7);
             dealersPointsView.setText(Integer.toString(dealerPoints));
-            imagesOfCardsOnTableForDealer.add(cardImage);
-            dealersGridLayout.addView(cardImage);
+            imageIdsOfCardsOnTableForDealer.add((Integer)cardImage.getTag());
+            ((LinearLayout)findViewById(R.id.dealerLinearLayout)).addView(cardImage);
         }
-        handleCurrentStateOfGame();
+
+        if (playerPoints.elementAt(handBeingPlayedByPlayer) > 21) {
+            standButtonSelected(null);
+        }
+
     }
 
-    public void standButtonSelected() {
-        simulateDealerPlaying();
-        handleCurrentStateOfGame();
+    public void standButtonSelected(View view) {
+
+        if (playerPoints.elementAt(handBeingPlayedByPlayer) > 21) {
+            handBeingPlayedByPlayer += 1;
+            Toast.makeText(getApplicationContext(), "Player has busted", Toast.LENGTH_SHORT).show();
+            dealerScore += 1;
+            ((TextView)findViewById(R.id.textView4)).setText(Integer.toString(dealerScore));
+        } else {
+
+            if (handBeingPlayedByPlayer == playerPoints.size() - 1) {
+                simulateDealerPlaying();
+            }
+
+            if (dealerPoints > 21) {
+                Toast.makeText(getApplicationContext(), "Dealer has busted", Toast.LENGTH_SHORT).show();
+                playerScore += 1;
+                ((TextView) findViewById(R.id.textView4)).setText(Integer.toString(playerScore));
+                resetGame();
+            } else if (playerPoints.elementAt(handBeingPlayedByPlayer) > dealerPoints) {
+                Toast.makeText(getApplicationContext(), "Player has won", Toast.LENGTH_SHORT).show();
+                playerScore += pointsWonThisRound;
+                ((TextView) findViewById(R.id.textView2)).setText(Integer.toString(playerScore));
+            } else if (playerPoints.elementAt(handBeingPlayedByPlayer) == dealerPoints) {
+                Toast.makeText(getApplicationContext(), "There was a tie", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getApplicationContext(), "Dealer has won", Toast.LENGTH_SHORT).show();
+                dealerScore += pointsWonThisRound;
+                ((TextView) findViewById(R.id.textView4)).setText(Integer.toString(dealerScore));
+            }
+        }
+
+        handBeingPlayedByPlayer += 1;
+
+        if (handBeingPlayedByPlayer > playerPoints.size()-1) {
+            resetGame();
+        } else {
+            TextView playersPointsView = (TextView) findViewById(R.id.textView5);
+            playersPointsView.setText(Integer.toString(playerPoints.elementAt(handBeingPlayedByPlayer)));
+        }
     }
 
-    public void doubleDownButtonSelected() {
-
-        handleCurrentStateOfGame();
+    public void doubleDownButtonSelected(View view) {
+        pointsWonThisRound = 2;
     }
 
-    public void splitButtonSelected() {
-
-        handleCurrentStateOfGame();
-    }
-
-    private void handleCurrentStateOfGame() {
+    public void splitButtonSelected(View view) {
+        playerPoints.setElementAt(handBeingPlayedByPlayer, cardsOnTableForPlayer.elementAt(0));
+        playerPoints.add(cardsOnTableForPlayer.elementAt(1));
+        cardsOnTableForPlayer.removeElementAt(1);
+        TextView playersPointsView = (TextView) findViewById(R.id.textView5);
+        playersPointsView.setText(Integer.toString(playerPoints.elementAt(handBeingPlayedByPlayer)));
 
     }
 
     private void resetGame() {
 
-        // Get the layout for the grid
-        GridLayout dealersGridLayout = (GridLayout) findViewById(R.id.gridLayoutForDealer);
-        GridLayout playersGridLayout = (GridLayout) findViewById(R.id.gridLayoutForDealer);
-
         // Reset the deck
         deck.reset();
 
         // Remove all the views we added previously
-        for (int i = 0; i < imagesOfCardsOnTableForPlayer.size(); ++i) {
-            playersGridLayout.removeView(imagesOfCardsOnTableForPlayer.elementAt(i));
+        for (int i = 0; i < imageIdsOfCardsOnTableForPlayer.size(); ++i) {
+            ((LinearLayout)findViewById(R.id.playerLinearLayout)).removeAllViews(); //(findViewById(imageIdsOfCardsOnTableForPlayer.elementAt(i)));
         }
+        cardsOnTableForPlayer.clear();
+        imageIdsOfCardsOnTableForPlayer.clear();
 
-        for (int i = 0; i < imagesOfCardsOnTableForDealer.size(); ++i) {
-            dealersGridLayout.removeView(imagesOfCardsOnTableForDealer.elementAt(i));
+        for (int i = 0; i < imageIdsOfCardsOnTableForDealer.size(); ++i) {
+            ((LinearLayout)findViewById(R.id.dealerLinearLayout)).removeAllViews(); //(findViewById(imageIdsOfCardsOnTableForDealer.elementAt(i)));
         }
+        cardsOnTableForDealer.clear();
+        imageIdsOfCardsOnTableForDealer.clear();
 
         // Reset points
-        playerPoints = 0;
+        pointsWonThisRound = 1;
+        playerPoints.clear();
+        playerPoints.add(0);
+        handBeingPlayedByPlayer = 0;
         dealerPoints = 0;
 
         // Player gets a card
         playersTurn = true;
-        hitButtonSelected();
+        hitButtonSelected(null);
 
         // Dealer gets a card
         playersTurn = false;
-        hitButtonSelected();
+        hitButtonSelected(null);
 
         // Player gets a card
         playersTurn = true;
-        hitButtonSelected();
+        hitButtonSelected(null);
 
         // Dealer gets a card
         playersTurn = false;
-        hitButtonSelected();
+        hitButtonSelected(null);
+
+        if (!splitIsPossible()) {
+            ((android.widget.Button) findViewById(R.id.button3)).setEnabled(false);
+        } else {
+            ((android.widget.Button) findViewById(R.id.button3)).setEnabled(true);
+        }
+
+        playersTurn = true;
 
     }
 
+    private boolean splitIsPossible() {
+        if (cardsOnTableForPlayer.elementAt(0) == cardsOnTableForPlayer.elementAt(1)) {
+            return true;
+        }
+
+        return false;
+    }
+
     private void simulateDealerPlaying() {
+
+        playersTurn = false;
+        while (dealerPoints < 17) {
+            hitButtonSelected(null);
+        }
 
     }
 
