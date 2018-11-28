@@ -1,6 +1,7 @@
 package com.blackjack.nickgraeff.blackjack;
 
 import android.os.Handler;
+import android.os.SystemClock;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -68,28 +69,34 @@ public class MainActivity extends AppCompatActivity {
 
         int cardDealt = deck.dealAValue();
         ImageView cardImage = new ImageView(getApplicationContext());
+        cardImage.setAdjustViewBounds(true);
         cardImage.setId(ViewCompat.generateViewId());
         cardImage.setTag(deck.getLastCardsImageResource());
         cardImage.setImageResource(deck.getLastCardsImageResource());
 
-        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT, ConstraintLayout.LayoutParams.WRAP_CONTENT);
-        llp.setMargins(0, 0, 0, 0); // llp.setMargins(left, top, right, bottom);
+        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        llp.setMargins(0, 0, 0, 0);
         cardImage.setLayoutParams(llp);
+
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        layoutParams.setMargins(0, 0, 0, 0);
 
         if (playersTurn) {
             playerPoints.set(handBeingPlayedByPlayer, playerPoints.elementAt(handBeingPlayedByPlayer) + cardDealt);
             cardsOnTableForPlayer.add(cardDealt);
-            TextView playersPointsView = (TextView) findViewById(R.id.textView5);
+            TextView playersPointsView = (TextView) findViewById(R.id.textView6);
             playersPointsView.setText(Integer.toString(playerPoints.elementAt(handBeingPlayedByPlayer)));
             imageIdsOfCardsOnTableForPlayer.add((Integer)cardImage.getTag());
-            ((LinearLayout)findViewById(R.id.playerLinearLayout)).addView(cardImage);
+            ((LinearLayout)findViewById(R.id.playerCardsLL)).addView(cardImage, layoutParams);
         } else {
             dealerPoints += cardDealt;
             cardsOnTableForDealer.add(cardDealt);
-            TextView dealersPointsView = (TextView) findViewById(R.id.textView7);
+            TextView dealersPointsView = (TextView) findViewById(R.id.textView8);
             dealersPointsView.setText(Integer.toString(dealerPoints));
             imageIdsOfCardsOnTableForDealer.add((Integer)cardImage.getTag());
-            ((LinearLayout)findViewById(R.id.dealerLinearLayout)).addView(cardImage);
+            ((LinearLayout)findViewById(R.id.dealerCardsLL)).addView(cardImage, layoutParams);
         }
 
         if (playerPoints.elementAt(handBeingPlayedByPlayer) > 21) {
@@ -109,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
 
             if (handBeingPlayedByPlayer == playerPoints.size() - 1) {
                 simulateDealerPlaying();
+                SystemClock.sleep(500);
             }
 
             if (dealerPoints > 21) {
@@ -134,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
         if (handBeingPlayedByPlayer > playerPoints.size()-1) {
             resetGame();
         } else {
-            TextView playersPointsView = (TextView) findViewById(R.id.textView5);
+            TextView playersPointsView = (TextView) findViewById(R.id.textView6);
             playersPointsView.setText(Integer.toString(playerPoints.elementAt(handBeingPlayedByPlayer)));
         }
     }
@@ -147,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
         playerPoints.setElementAt(handBeingPlayedByPlayer, cardsOnTableForPlayer.elementAt(0));
         playerPoints.add(cardsOnTableForPlayer.elementAt(1));
         cardsOnTableForPlayer.removeElementAt(1);
-        TextView playersPointsView = (TextView) findViewById(R.id.textView5);
+        TextView playersPointsView = (TextView) findViewById(R.id.textView6);
         playersPointsView.setText(Integer.toString(playerPoints.elementAt(handBeingPlayedByPlayer)));
 
     }
@@ -159,13 +167,13 @@ public class MainActivity extends AppCompatActivity {
 
         // Remove all the views we added previously
         for (int i = 0; i < imageIdsOfCardsOnTableForPlayer.size(); ++i) {
-            ((LinearLayout)findViewById(R.id.playerLinearLayout)).removeAllViews(); //(findViewById(imageIdsOfCardsOnTableForPlayer.elementAt(i)));
+            ((LinearLayout)findViewById(R.id.playerCardsLL)).removeAllViews(); //(findViewById(imageIdsOfCardsOnTableForPlayer.elementAt(i)));
         }
         cardsOnTableForPlayer.clear();
         imageIdsOfCardsOnTableForPlayer.clear();
 
         for (int i = 0; i < imageIdsOfCardsOnTableForDealer.size(); ++i) {
-            ((LinearLayout)findViewById(R.id.dealerLinearLayout)).removeAllViews(); //(findViewById(imageIdsOfCardsOnTableForDealer.elementAt(i)));
+            ((LinearLayout)findViewById(R.id.dealerCardsLL)).removeAllViews(); //(findViewById(imageIdsOfCardsOnTableForDealer.elementAt(i)));
         }
         cardsOnTableForDealer.clear();
         imageIdsOfCardsOnTableForDealer.clear();
@@ -216,6 +224,7 @@ public class MainActivity extends AppCompatActivity {
         playersTurn = false;
         while (dealerPoints < 17) {
             hitButtonSelected(null);
+            SystemClock.sleep(500);
         }
 
     }
